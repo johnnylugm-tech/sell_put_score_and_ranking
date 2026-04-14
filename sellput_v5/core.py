@@ -82,11 +82,14 @@ class SellPutV5Skill:
         tk = yf.Ticker(ticker)
         info = tk.info
         
-        price = info.get('currentPrice', info.get('regularMarketPrice', 0))
+        price = info.get('currentPrice') or info.get('regularMarketPrice') or 0
         mkt_cap = info.get('marketCap', 0)
         beta = info.get('beta', 1.0)
-        fwd_pe = info.get('forwardPE', 0)
-        ttm_pe = info.get('trailingPE', 0)
+        # PE: 優先 forwardPE，fallback 到 trailingPE
+        fwd_pe_raw = info.get('forwardPE')
+        trailing_pe = info.get('trailingPE', 0)
+        fwd_pe = fwd_pe_raw if fwd_pe_raw and fwd_pe_raw > 0 else (trailing_pe if trailing_pe and trailing_pe > 0 else 0)
+        ttm_pe = trailing_pe
         fcf = info.get('freeCashflow', 0)
         revenue_growth = info.get('revenueGrowth', 0)
         low_52w = info.get('fiftyTwoWeekLow', 0)
