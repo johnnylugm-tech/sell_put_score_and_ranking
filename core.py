@@ -145,8 +145,9 @@ class SellPutV5Skill:
         price = info.get('currentPrice') or info.get('regularMarketPrice') or 0
         mkt_cap = info.get('marketCap', 0)
         beta = info.get('beta', 1.0)
-        fwd_pe = info.get('forwardPE', 0)
-        ttm_pe = info.get('trailingPE', 0)
+        fwd_pe_raw = info.get('forwardPE', 0)
+        ttm_pe = info.get('trailingPE', 0) or 0
+        fwd_pe = fwd_pe_raw if (fwd_pe_raw and fwd_pe_raw > 0) else (ttm_pe if ttm_pe > 0 else 0)
         fcf = info.get('freeCashflow', 0)
         revenue_growth = info.get('revenueGrowth', 0)
         low_52w = info.get('fiftyTwoWeekLow', 0)
