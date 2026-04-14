@@ -48,12 +48,19 @@ def main():
         return " / ".join(parts) if parts else ""
 
     def _dte_display(r):
-        """顯示 DTE：優先顯示財報倒數，否則顯示 option DTE"""
+        """顯示 DTE：
+        - 財報倒數：`財71天`（有「財」字）
+        - Option DTE：`37D`（加 D 後綴，無「財」）
+        - QQQ 等 ETF：`(無財報)` 或 `ETF`
+        """
         if r.stock.earnings_date:
             days_to_earn = (r.stock.earnings_date - today).days
             if days_to_earn >= 0:
                 return f"財{days_to_earn}天"
-        return f"{r.option.dte}" if r.option and r.option.exp else "N/A"
+        # Option DTE → 加 D 後綴
+        if r.option and r.option.exp:
+            return f"{r.option.dte}D"
+        return "(無財報)"
 
     # 顯示完整排名（所有 16 檔）
     print("【排名報告 v5.0】")
@@ -64,11 +71,22 @@ def main():
         price = r.stock.price
         price_str = f"{price:.2f}" if price and price > 0 else "N/A"
 
-        # PE 標注：fwd_pe 異常 (<10 或 >50) 視為 Forward PE失真，標 *
+        # PE 標注：
+        # - fwd_pe 異常 (<10 或 >50) → 顯示 `{fwd_pe}*/{ttm_pe}`，標 `*`
+        # - fwd_pe 正常但用 TTM fallback → 顯示 `{ttm_pe}†`，標 `†`
         fwd_pe = r.stock.fwd_pe
+        ttm_pe = r.stock.ttm_pe
         pe_anomaly = fwd_pe and (fwd_pe < 10 or fwd_pe > 50)
         if fwd_pe and fwd_pe > 0:
-            pe_str = f"{fwd_pe:.0f}*" if pe_anomaly else f"{fwd_pe:.0f}"
+            if pe_anomaly and ttm_pe and ttm_pe > 0:
+                pe_str = f"{fwd_pe:.0f}*/{ttm_pe:.0f}"
+            elif pe_anomaly:
+                pe_str = f"{fwd_pe:.0f}*"
+            else:
+                pe_str = f"{fwd_pe:.0f}"
+        elif ttm_pe and ttm_pe > 0:
+            # fwd_pe 不可用，使用 TTM fallback，標 `†`
+            pe_str = f"{ttm_pe:.0f}†"
         else:
             pe_str = "N/A"
 
@@ -85,10 +103,11 @@ def main():
 
         print(f"{i:<3} {r.ticker:<6} {r.grade:<2} {r.adj_total:>5.1f} {price_str:>7} {iv_str:>5} {hv_val:>5.1f} {pe_str:>6} {rsi_str:>5} {dist_low:>6.1f} {dte_str:>8} {strike_str:>8} {warn_str}{forbid_mark}")
 
-    # PE 失真說明
     print("─" * 120)
+    print("📌 過熱 = RSI>70，短線回檔風險高")
     print("📌 PE* = Forward PE，可能失真（<10=極低預期成長，>50=虧損或週期股）")
-    print("📌 高IV低流動 = IV>80% 且市值<$100B，流動性風險高，bid/ask spread 可能很大")
+    print("📌 PE† = TTM PE（Forward N/A）")
+    print("📌 高IV低流動 = IV>80% 且市值<$100B，流動性風險高")
     print()
     
     # 生成 Excel
