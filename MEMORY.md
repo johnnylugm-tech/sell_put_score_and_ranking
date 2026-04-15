@@ -1,121 +1,98 @@
-# 長期記憶庫 (Long-Term Memory)
+# 長期記憶庫
 
-> 這是經過整理的長期記憶，而非原始對話記錄
+## 關於 Johnny
 
----
+我是他的 AI 助理，專門幫他處理選擇權交易和美股分析。
 
-## 📌 關於用戶 (Johnny Lu)
-
-- **Name:** Johnny Lu (呂小麟)
-- **Timezone:** Asia/Taipei
-- **平台:** Mac mini, Telegram
-- **職業/興趣:** 選擇權交易、美股投資
+- 時區：台北（Asia/Taipei）
+- 平台：Mac mini + Telegram
+- 喜歡：直接、有數據、硬核風格
+- 語言：繁體中文
 
 ---
 
-## 🔑 重要偏好
+## 核心原則
 
-| 項目 | 偏好 |
+遇到問題就修，不要等。數學交給 Python，不要自己算。
+
+---
+
+## 當前持倉
+
+**美股：** 空倉觀望中
+
+**台股：** 00637L（滬深300 ETF）
+- 960張，成本 $15.20
+- 目標：分批減碼
+- 停損：$18.04
+
+---
+
+## Sell Put 系統
+
+這是我們的核心交易系統。
+
+**每天早上 09:00（Taipei）** 收到一份 16 檔股票的評估報告，用於判斷要不要開新倉。
+
+**終極問題：** 如果被行權，我願意以這個履約價長期持有這檔股票嗎？
+
+**進場信號（三選一）：**
+1. Gap 大跌（< 履約價 + 5%）
+2. VIX > 35 或單日飆 +10
+3. 財報 < 7 天
+
+**模型版本：**
+- v5.0：用於每天 cron 排名
+- v2.1：用於深度分析
+
+**16 檔觀察名單：**
+半導體：MU, TSM, AVGO, AMD, NVDA, MRVL, INTC
+科技：GOOGL, AAPL, MSFT, AMZN
+其他：ALAB, VST, ARM, TSLA, QQQ
+
+⚠️ 半導體佔 7/16，太集中會有系統性風險
+
+---
+
+## Cron Jobs
+
+| 時間 | 功用 |
 |------|------|
-| 溝通風格 | 直接、硬核、有數據支撐 |
-| 回覆長度 | 適中，重點優先 |
-| 興趣領域 | 美股、科技股、AI、選擇權、量化交易 |
-| 語言 | 中文（繁體） |
+| 12:00 Mon-Fri | 盤前快報（VIX、隔夜行情） |
+| 21:00 Mon-Fri | 每日排名報告（完整 16 檔） |
+| 22:00 Mon-Fri | IV 日誌（累積歷史數據） |
+| 每週一 09:00 | IV 週報 |
+| 09:35 Mon-Fri | 00637L 分析 |
 
 ---
 
-## ⚡ 核心行為準則
+## 技術規定
 
-1. **立即修復錯誤** - 不要問！不要等待！
-2. **生成子代理執行** - 所有執行任務由子代理處理
-3. **專注分析與決策** - 只負責分析、專業決策、向我傳達結果
-4. **Git 操作紅線：** 🚫 禁止 force push / 刪除分支 / 重寫歷史
-
----
-
-## 📈 Sell Put 交易系統（核心）
-
-### 終極決策問題
-> 「如果被行權，以這個履約價，我願意長期持有這檔股票嗎？」
-
-### 行動觸發三條件
-1. Gap 開盤大跌：現價 < 履約價 + 5%
-2. VIX 飆升：> 35 或單日 +10
-3. 財報前倒數：< 7 天
-
-### 模型版本（2026-04-14 確認）
-| 版本 | 評分 | 應用 |
-|------|------|------|
-| v2.1 | 95/100 | 深度分析、個別標的評估 |
-| **v5.0** | 75/100 | **✅ 每日排名監控（cron job 21:00 Taiwan）** |
-
-### 當前持倉
-| 類型 | 標的 | 履約價 | 到期日 | 狀態 |
-|------|------|--------|--------|------|
-| 美股 | — | — | — | ❌ 空倉觀望中 |
-| 台股 | 00637L | 成本$15.20 | — | ✅ 960張，分批減碼中 |
-
-### 16 檔觀察名單（2026-04-15）
-**半導體（7檔）：** MU, TSM, AVGO, AMD, NVDA, MRVL, INTC
-**科技（4檔）：** GOOGL, AAPL, MSFT, AMZN
-**其他（5檔）：** ALAB, VST, ARM, TSLA, QQQ
-**⚠️ 半導體集中度 >40% = 系統性風險警告**
-
-### 技術紀律
-- **LLM 禁止做數學** — Python 腳本計算，Agent 只呈現
-- **stock-market-pro** — 所有股票報價/IV/HV 強制使用此 Skill
-- **sell_put_ranking.py** — 強制計算工具，不可篡改
+- 所有股價/IV/HV 查詢：統一用 `stock-market-pro` skill
+- Python 腳本算數學，禁止 LLM 自己算
+- `sell_put_ranking.py` 是強制計算工具，不可篡改
 
 ---
 
-## 🔧 系統功能
+## 待修復
 
-### Cron Jobs（主要）
-| Job | 時間（Taiwan）| 功能 |
-|-----|------|--------|
-| Sell Put 盤前快速掃描 | 12:00 Mon-Fri | VIX + Gap + 重要事件 |
-| Sell Put 每日排名監控 | 21:00 Mon-Fri | 完整16檔排名報告 |
-| IV History Logger | 22:00 Mon-Fri | 建立 IV 歷史資料庫 |
-| IV Weekly Monitor | 每週一 09:00 | 週 IV 變化分析 |
-| 00637L 每日分析 | 09:35 Mon-Fri | 十大因子追蹤 |
-
-### IV 歷史資料庫
-- **腳本：** `iv_history_logger.py` + `iv_weekly_monitor.py`
-- **位置：** `memory/iv_database.json`
-- **進度：** 建设中（需 252 天才可計算 IV Rank/Percentile）
+- Gemini API Key（image 分析功能受影響）
 
 ---
 
-## 📁 重要文件位置
+## 檔案位置
 
-| 檔案 | 位置 |
-|------|------|
-| Sell Put v5 模型 | `~/.qclaw/workspace/skills/sellput-v5-skill/` |
-| 00637L 分析 | `~/.openclaw/workspace-option/skills/00637l-analysis/` |
-| stock-market-pro | `~/.openclaw/workspace-option/skills/stock-market-pro/` |
-| IV 資料庫 | `memory/iv_database.json` |
+- Sell Put 模型：`~/.qclaw/workspace/skills/sellput-v5-skill/`
+- 00637L 分析：`~/.openclaw/workspace-option/skills/00637l-analysis/`
+- IV 資料庫：`memory/iv_database.json`
 
 ---
 
-## ⚠️ 待修復
+## 歷史記錄
 
-- Gemini API Key 問題（影響 image 分析功能）
-
----
-
-## 📌 歷史存檔索引
-
-以下詳細記錄已移至 `memory/archive/2026-03/`：
-- 2026-03-15 ~ 2026-03-31 每日互動記錄
-- Sell Put 模型版本演化（v1.0 → v2.1）完整過程
-- A50 指數分析框架建立
-- 初期 cron job 建置記錄
-
-以下詳細記錄已移至 `memory/archive/2026-04-early/`：
-- 2026-04-01 ~ 2026-04-07 每日互動記錄
-- v3.x / v4.0 模型開發過程
-- AMD 實戰驗證案例
+2026-03 的詳細記錄在 `memory/archive/2026-03/`
+2026-04 前半的記錄在 `memory/archive/2026-04-early/`
 
 ---
 
-> 最後更新：2026-04-15 17:30 (Asia/Taipei)
+最後更新：2026-04-15
