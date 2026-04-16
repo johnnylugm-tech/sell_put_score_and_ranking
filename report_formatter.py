@@ -117,11 +117,11 @@ def format_report(data, today):
         strike = opt.get('strike', 0)
         strike_str = f"{strike:.0f}" if strike else "N/A"
         
-        # 年化%（顯示理論值與合理區間；小於1%時顯示 <1）
+        # 年化%（顯示理論值與合理區間；min<1時顯示 <1）
         ann = r.get('annual_return', 0) or 0
         ann_min = round(ann * 0.10, 1)
         ann_max = round(ann * 0.15, 1)
-        if ann < 1:
+        if ann_min < 1:
             ann_str = f"{ann:.0f}(<1)"
         else:
             ann_str = f"{ann:.0f}({ann_min:.0f}-{ann_max:.0f})"
