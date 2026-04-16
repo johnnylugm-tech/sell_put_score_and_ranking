@@ -67,11 +67,36 @@ def main():
     
     print(f"📤 發送到 Telegram...")
     try:
-        result = send_telegram(report, token)
-        if result.get("ok"):
-            print(f"✅ 發送成功，message_id: {result['result']['message_id']}")
+        if len(report) > 4096:
+            # Split into two parts at the WeChat section
+            wechat_marker = "\n============================================================\n【微信通知格式】"
+            if wechat_marker in report:
+                idx = report.index(wechat_marker)
+                part1 = report[:idx]
+                part2 = report[idx:]
+                msg1 = send_telegram(part1, token)
+                if msg1.get("ok"):
+                    print(f"✅ 第一部分發送成功，message_id: {msg1['result']['message_id']}")
+                else:
+                    print(f"❌ 第一部分發送失敗: {msg1}")
+                import time; time.sleep(1)
+                msg2 = send_telegram(part2, token)
+                if msg2.get("ok"):
+                    print(f"✅ 第二部分發送成功，message_id: {msg2['result']['message_id']}")
+                else:
+                    print(f"❌ 第二部分發送失敗: {msg2}")
+            else:
+                result = send_telegram(report[:4096], token)
+                if result.get("ok"):
+                    print(f"✅ 發送成功，message_id: {result['result']['message_id']}")
+                else:
+                    print(f"❌ 發送失敗: {result}")
         else:
-            print(f"❌ 發送失敗: {result}")
+            result = send_telegram(report, token)
+            if result.get("ok"):
+                print(f"✅ 發送成功，message_id: {result['result']['message_id']}")
+            else:
+                print(f"❌ 發送失敗: {result}")
     except Exception as e:
         print(f"❌ 發送例外: {e}")
         sys.exit(1)
