@@ -164,15 +164,13 @@ def format_report(data, today):
     
     for i, s in enumerate(a_stocks, 1):
         forbid = "🚫" if s['is_forbidden'] else ""
-        # IV/HV：優先用 metrics，否則從表格欄位反算
-        iv_hv_ratio = s.get('metrics', {}).get('iv_hv_ratio', 0)
-        if not iv_hv_ratio:
-            opt_iv = s.get('option', {}).get('iv', 0)
-            hv_val = s.get('hv', 0)
-            if hv_val > 0 and opt_iv > 0:
-                iv_hv_ratio = opt_iv / hv_val
-            elif hv_val > 0:
-                iv_hv_ratio = s.get('metrics', {}).get('iv_hv_ratio', 0)
+        # IV/HV：直接從表格欄位計算（HV 和 IV 都必定存在）
+        hv_val = s.get('hv', 0) or 0
+        opt_iv_val = s.get('option', {}).get('iv', 0) or 0
+        if hv_val > 0 and opt_iv_val > 0:
+            iv_hv_ratio = round(opt_iv_val / hv_val, 2)
+        else:
+            iv_hv_ratio = s.get('metrics', {}).get('iv_hv_ratio', 0) or 0
         lines.append(f"{i}. {s['ticker']} {s['sector'][:4]} {s['grade']} {s['adj_total']:.0f}分 IV/HV={iv_hv_ratio:.2f} {forbid}")
     
     # Forbidden
