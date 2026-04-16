@@ -213,6 +213,8 @@ def format_report(data, today):
         lines.append("")
         lines.append(f"⚠️ 基本面<10分: {', '.join(s['ticker'] for s in low_fund)}")
     
+    lines.append("📌 最大虧損 ≈ 現價 - 履約價（被指派時）；Delta 為期權價格對標的價格變化的敏感度（賣Put適用範圍 0.2-0.5）")
+    lines.append("📌 Delta = 標的價格+$1 時期權價格的變化量；Theta = 每日時間價值衰減（$）；Vega = IV+1% 時期權價格的變化量")
     return "\n".join(lines)
 
 
@@ -239,5 +241,4 @@ def main():
 if __name__ == "__main__":
     main()
 
-    lines.append("📌 最大虧損 ≈ 現價 - 履約價（被指派時）；Delta 為期權價格對標的價格變化的敏感度（賣Put適用範圍 0.2-0.5）")
-    lines.append("📌 Delta = 標的價格+$1 時期權價格的變化量；Theta = 每日時間價值衰減（$）；Vega = IV+1% 時期權價格的變化量")
+
