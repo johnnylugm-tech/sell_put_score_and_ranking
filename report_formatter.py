@@ -46,7 +46,9 @@ def format_report(data, today):
         opt = r.get('option', {})
         # 有財報：顯示距財報天數
         earnings_days = r.get('days_to_earnings', 999)
-        if earnings_days < 999:
+        if earnings_days < 0:
+            return "財報已過"
+        elif 0 <= earnings_days < 999:
             return f"財{int(earnings_days)}天"
         # 無財報：顯示 DTE
         if opt.get('dte', 0) > 0:
@@ -162,8 +164,16 @@ def format_report(data, today):
     
     for i, s in enumerate(a_stocks, 1):
         forbid = "🚫" if s['is_forbidden'] else ""
-        iv_hv = s.get('metrics', {}).get('iv_hv_ratio', 0)
-        lines.append(f"{i}. {s['ticker']} {s['sector'][:4]} {s['grade']} {s['adj_total']:.0f}分 IV/HV={iv_hv:.2f} {forbid}")
+        # IV/HV：優先用 metrics，否則從表格欄位反算
+        iv_hv_ratio = s.get('metrics', {}).get('iv_hv_ratio', 0)
+        if not iv_hv_ratio:
+            opt_iv = s.get('option', {}).get('iv', 0)
+            hv_val = s.get('hv', 0)
+            if hv_val > 0 and opt_iv > 0:
+                iv_hv_ratio = opt_iv / hv_val
+            elif hv_val > 0:
+                iv_hv_ratio = s.get('metrics', {}).get('iv_hv_ratio', 0)
+        lines.append(f"{i}. {s['ticker']} {s['sector'][:4]} {s['grade']} {s['adj_total']:.0f}分 IV/HV={iv_hv_ratio:.2f} {forbid}")
     
     # Forbidden
     forbidden = [s for s in data['stocks'] if s['is_forbidden']]
