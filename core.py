@@ -569,8 +569,10 @@ class SellPutV5Skill:
         metrics['efficiency'] = efficiency
         
         # ── 年化收益率與時機（用於 report_formatter.py 顯示）
+        # P0修正④：年化% DTE口徑與表格DTE一致（均用 days_to_earnings）
         import math
-        metrics['annual_return'] = round(iv * 0.05 * math.sqrt(dte / 365) * 100, 1) if dte > 0 else 0.0
+        stock_dte = days_to_earnings if 0 < days_to_earnings < 999 else dte
+        metrics['annual_return'] = round(iv * 0.05 * math.sqrt(stock_dte / 365) * 100, 1) if stock_dte > 0 else 0.0
         if option.dte < 14 and stock.rsi > 60:
             metrics['timing'] = '短線'
         elif option.dte <= 45:
