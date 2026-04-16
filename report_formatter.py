@@ -83,7 +83,13 @@ def format_report(data, today):
         
         if r.get('days_to_earnings', 999) <= 7:
             parts.append("財報")
-        
+
+        # IV低估：IV/HV < 0.2 且 HV > 30
+        hv_val = r.get('hv', 0) or 0
+        opt_iv_val = r.get('option', {}).get('iv', 0) or 0
+        if hv_val > 30 and 0 < opt_iv_val < hv_val * 0.2:
+            parts.append("IV低估")
+
         return " / ".join(parts) if parts else ""
     
     for i, r in enumerate(data['stocks'], 1):
@@ -111,9 +117,11 @@ def format_report(data, today):
         strike = opt.get('strike', 0)
         strike_str = f"{strike:.0f}" if strike else "N/A"
         
-        # 年化%
+        # 年化%（顯示理論值與合理區間）
         ann = r.get('annual_return', 0) or 0
-        ann_str = f"{ann:.1f}"
+        ann_min = round(ann * 0.10, 1)
+        ann_max = round(ann * 0.15, 1)
+        ann_str = f"{ann:.0f}({ann_min:.0f}-{ann_max:.0f})"
         
         # 倉位
         pos_str = calc_position(r)
@@ -142,7 +150,7 @@ def format_report(data, today):
 
         lines.append(f"{i:<3} {r['ticker']:<6} {r['grade']:<2} {r['adj_total']:>5.1f} {price_str:>7} {iv_str:>5} {hv_val:>5.1f} {iv_hv_str:>6} {pe_str:>6} {rsi_str:>5} {dist_low:>6.1f} {dte_str:>8} {strike_str:>8} {ann_str:>7} {pos_str:>5} {timing_str:<5} {warn_str}{forbid_mark}{tier_mark}")
     
-    lines.append("─" * 160)
+    lines.append("─" * 170)
     lines.append("📌 過熱 = RSI>70，短線回檔風險高")
     lines.append("📌 PE* = Forward PE，可能失真（<10=極低預期成長，>50=虧損或週期股）")
     lines.append("📌 PE† = TTM PE（Forward N/A）")
