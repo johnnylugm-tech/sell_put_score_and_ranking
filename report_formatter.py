@@ -28,7 +28,7 @@ def format_report(data, today):
     
     # 完整排名表格（所有 16 檔）
     lines.append("【排名報告 v5.0】")
-    header = f"{'#':<3} {'代碼':<6} {'等':<2} {'總分':>5} {'現價':>7} {'IV%':>5} {'HV%':>5} {'PE':>5} {'RSI':>5} {'距低%':>6} {'DTE':>8} {'履約價':>8} {'年化%':>7} {'倉位':>5} {'時機':<5} {'⚠️'}"
+    header = f"{'#':<3} {'代碼':<6} {'等':<2} {'總分':>5} {'現價':>7} {'IV%':>5} {'HV%':>5} {'IV/HV':>6} {'PE':>5} {'RSI':>5} {'距低%':>6} {'DTE':>8} {'履約價':>8} {'年化%':>7} {'倉位':>5} {'時機':<5} {'⚠️'}"
     lines.append(header)
     lines.append("-" * 150)
     
@@ -126,17 +126,23 @@ def format_report(data, today):
         
         # tier
         tier = opt.get('tier', 'unknown')
-        tier_mark = "" if tier == 'real' else f"⚠️{tier}"
+        tier_mark = "" if tier in ('real', 't1') else f"⚠️{tier}"
         
         forbid_mark = "🚫" if r.get('is_forbidden') else ""
         
         iv_val = opt.get('iv', 0)
         iv_str = f"{iv_val:.1f}" if iv_val > 0 else "N/A"
         hv_val = r.get('hv', 0)
-        
-        lines.append(f"{i:<3} {r['ticker']:<6} {r['grade']:<2} {r['adj_total']:>5.1f} {price_str:>7} {iv_str:>5} {hv_val:>5.1f} {pe_str:>6} {rsi_str:>5} {dist_low:>6.1f} {dte_str:>8} {strike_str:>8} {ann_str:>7} {pos_str:>5} {timing_str:<5} {warn_str}{forbid_mark}{tier_mark}")
+        # IV/HV ratio
+        opt_iv_val = r.get('option', {}).get('iv', 0) or 0
+        if hv_val > 0 and opt_iv_val > 0:
+            iv_hv_str = f"{opt_iv_val/hv_val:.2f}"
+        else:
+            iv_hv_str = "-"
+
+        lines.append(f"{i:<3} {r['ticker']:<6} {r['grade']:<2} {r['adj_total']:>5.1f} {price_str:>7} {iv_str:>5} {hv_val:>5.1f} {iv_hv_str:>6} {pe_str:>6} {rsi_str:>5} {dist_low:>6.1f} {dte_str:>8} {strike_str:>8} {ann_str:>7} {pos_str:>5} {timing_str:<5} {warn_str}{forbid_mark}{tier_mark}")
     
-    lines.append("─" * 150)
+    lines.append("─" * 160)
     lines.append("📌 過熱 = RSI>70，短線回檔風險高")
     lines.append("📌 PE* = Forward PE，可能失真（<10=極低預期成長，>50=虧損或週期股）")
     lines.append("📌 PE† = TTM PE（Forward N/A）")
