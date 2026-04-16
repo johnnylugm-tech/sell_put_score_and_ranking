@@ -175,10 +175,24 @@ def format_report(data, today):
         theta_str = f"{theta_val:.2f}" if abs(theta_val) > 0.001 else "0.00"
         vega_val = opt.get('vega', 0) or 0
         vega_str = f"{vega_val:.2f}" if abs(vega_val) > 0.001 else "0.00"
+        # Gamma
+        gamma_val = opt.get('gamma', 0) or 0
+        gamma_str = f"{gamma_val:.4f}" if abs(gamma_val) > 0.0001 else "0.0000"
 
-        # Spread%
+        # Spread%（若未提供則從 bid/ask 計算）
         spread_val = opt.get('spread', 0) or 0
+        if spread_val == 0:
+            bid = opt.get('bid', 0) or 0
+            ask = opt.get('ask', 0) or 0
+            if ask > 0 and bid > 0:
+                mid = (bid + ask) / 2
+                if mid > 0:
+                    spread_val = (ask - bid) / mid * 100
         spread_str = f"{spread_val:.1f}" if spread_val > 0 else "0.0"
+
+        # Margin Efficiency
+        margin_eff = r.get('margin_efficiency', 0) or 0
+        margin_eff_str = f"{margin_eff:.1f}" if margin_eff > 0 else "0.0"
 
         # Strike偏離警告
         strike_dev = opt.get('strike_deviation', 0) or 0
@@ -188,9 +202,9 @@ def format_report(data, today):
         elif strike_dev < -0.05:
             strike_warn = "深OTM"
 
-        lines.append(f"{i:<3} {r['ticker']:<6} {r['grade']:<2} {r['adj_total']:>5.1f} {price_str:>7} {iv_str:>5} {hv_val:>5.1f} {iv_hv_str:>6} {delta_str:>6} {theta_str:>6} {vega_str:>6} {spread_str:>7} {pe_str:>5} {rsi_str:>5} {dist_low:>6.1f} {dte_str:>8} {strike_str:>8} {ann_str:>8} {pos_str:>5} {timing_str:<5} {warn_str}{strike_warn}{forbid_mark}{tier_mark}")
+        lines.append(f"{i:<3} {r['ticker']:<6} {r['grade']:<2} {r['adj_total']:>5.1f} {price_str:>7} {iv_str:>5} {hv_val:>5.1f} {iv_hv_str:>6} {delta_str:>5} {theta_str:>5} {gamma_str:>6} {vega_str:>5} {spread_str:>6} {ann_str:>7} {margin_eff_str:>9} {pe_str:>5} {rsi_str:>5} {dist_low:>6.1f} {dte_str:>8} {strike_str:>8} {pos_str:>5} {timing_str:<5} {warn_str}{strike_warn}{forbid_mark}{tier_mark}")
     
-    lines.append("─" * 220)
+    lines.append("─" * 240)
     lines.append("📌 過熱 = RSI>70，短線回檔風險高")
     lines.append("📌 PE* = Forward PE，可能失真（<10=極低預期成長，>50=虧損或週期股）")
     lines.append("📌 PE† = TTM PE（Forward N/A）")
@@ -240,7 +254,7 @@ def format_report(data, today):
         lines.append(f"⚠️ 基本面<10分: {', '.join(s['ticker'] for s in low_fund)}")
     
     lines.append("📌 最大虧損 ≈ 現價 - 履約價（被指派時）；Delta 為期權價格對標的價格變化的敏感度（賣Put適用範圍 0.2-0.5）")
-    lines.append("📌 Delta = 標的+$1 時期權變化；Theta = 每日時間衰減（$）；Vega = IV+1% 時權利金變化；IV低估 = IV/HV<0.2（市場低估）；IV異常 = IV/HV<0.1（數據可能失效）；數據不穩 = tier=t3（HV×1.3估算）")
+    lines.append("📌 Delta = 標的+$1 時期權變化；Theta = 每日時間衰減（$）；Gamma = Delta對標的$1變化的加速率；Vega = IV+1% 時權利金變化；IV低估 = IV/HV<0.2（市場低估）；IV異常 = IV/HV<0.1（數據可能失效）；Margin_Eff = 年化淨回報相對於20%保證金的效率")
     return "\n".join(lines)
 
 

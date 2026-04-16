@@ -40,6 +40,7 @@ class OptionData:
     delta: float
     theta: float = 0.0   # Daily theta (decay in $)
     vega: float = 0.0   # Vega ($ per 1% IV change)
+    gamma: float = 0.0   # Gamma: dDelta/dS per $1 move in underlying
     strike_deviation: float = 0.0  # (actual_strike - target_strike) / target_strike; positive=ITM, negative=OTM
     tier: str = 'unknown'
 
@@ -443,10 +444,13 @@ class SellPutV5Skill:
                     theta = -0.5 * S2 * sigma2 * norm.pdf(d1) / np.sqrt(T2) * np.exp(-r2*T2) / 365
                     # Vega ($ per 1% IV change): S*sqrt(T)*pdf(d1)*0.01
                     vega = S2 * np.sqrt(T2) * norm.pdf(d1) * 0.01
+                    # Gamma: dDelta/dS per $1 = S*sigma*sqrt(T)*pdf(d1) / (K^2 * sigma^2 * T)
+                    gamma = norm.pdf(d1) / (S2 * K2 * sigma2 * sigma2 * T2) if T2 > 0 and sigma2 > 0 and K2 > 0 else 0.0
                 except:
                     delta = -0.5
                     theta = 0.0
                     vega = 0.0
+                    gamma = 0.0
 
                 # Strike deviation: (actual - 8% OTM target) / target; positive=ITM, negative=deep OTM
                 target_8pct = price * 0.92
@@ -455,7 +459,7 @@ class SellPutV5Skill:
                 return OptionData(
                     exp=selected_exp, dte=selected_dte, strike=strike,
                     iv=iv, bid=bid, ask=ask, oi=oi, spread=spread, delta=delta,
-                    theta=theta, vega=vega, strike_deviation=strike_deviation,
+                    theta=theta, vega=vega, gamma=gamma, strike_deviation=strike_deviation,
                     tier=tier
                 )
             except Exception:
@@ -583,12 +587,22 @@ class SellPutV5Skill:
         metrics['rocc_adj'] = rocc_adj
         metrics['pop'] = pop
         metrics['efficiency'] = efficiency
+        # R-D: Margin efficiency (annual return relative to 20% cash-secured margin)
+        # Net premium after spread: bid * (1 - spread%/100)
+        net_premium = bid * (1 - spread / 100) if bid > 0 else 0
+        margin_used = price * 0.20
+        margin_efficiency = (net_premium / margin_used) * (365 / dte) * 100 if margin_used > 0 else 0
+        metrics['margin_efficiency'] = round(margin_efficiency, 1)
         
         # ── 年化收益率與時機（用於 report_formatter.py 顯示）
         # P0修正④：年化% DTE口徑與表格DTE一致（均用 days_to_earnings）
+        # R-C: 扣除 Spread 摩擦成本
         import math
         stock_dte = days_to_earnings if 0 < days_to_earnings < 999 else dte
-        metrics['annual_return'] = round(iv * 0.05 * math.sqrt(stock_dte / 365) * 100, 1) if stock_dte > 0 else 0.0
+        gross_return = iv * 0.05 * math.sqrt(stock_dte / 365) * 100
+        # 實際權利金 =理論最大值 × (1 - spread%/100)
+        spread_factor = max(1 - spread / 100, 0.5)  # 至少留50%
+        metrics['annual_return'] = round(gross_return * spread_factor, 1) if stock_dte > 0 else 0.0
         if option.dte < 14 and stock.rsi > 60:
             metrics['timing'] = '短線'
         elif option.dte <= 45:
@@ -678,7 +692,7 @@ class SellPutV5Skill:
             if sector_counts[r.sector] >= 3 and max_count >= 3:
                 # 該板塊有 ≥3 檔 → s5 扣 2 分
                 r.scores['s5'] = max(r.scores.get('s5', 0) - 2, 0)
-                r.warnings.append(f"⚠️板塊集中({sector_counts[r.sector]}檔)")
+                r.warnings.append(f"⚠️板塊集中({sector_counts[r.sector]}檔)S5-2")
                 # 重新計算總分
                 r.raw_total = sum(r.scores.values())
                 r.adj_total = r.raw_total * 0.8 if r.scores.get('s3', 0) < 10 else r.raw_total

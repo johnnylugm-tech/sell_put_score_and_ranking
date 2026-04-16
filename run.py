@@ -41,6 +41,7 @@ def to_dict(r, today):
         'rocc_adj': r.metrics.get('rocc_adj', 0) if r.metrics else 0,
         'pop': r.metrics.get('pop', 0) if r.metrics else 0,
         'efficiency': r.metrics.get('efficiency', 0) if r.metrics else 0,
+        'margin_efficiency': r.metrics.get('margin_efficiency', 0) if r.metrics else 0,
         'warnings': r.warnings if hasattr(r, 'warnings') else [],
         'stock': {
             'price': r.stock.price,
@@ -61,6 +62,7 @@ def to_dict(r, today):
             'theta': getattr(r.option, 'theta', 0) if r.option else 0,
             'vega': getattr(r.option, 'vega', 0) if r.option else 0,
             'strike_deviation': getattr(r.option, 'strike_deviation', 0) if r.option else 0,
+            'gamma': getattr(r.option, 'gamma', 0) if r.option else 0,
         },
     }
 
