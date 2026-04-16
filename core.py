@@ -563,6 +563,16 @@ class SellPutV5Skill:
         metrics['pop'] = pop
         metrics['efficiency'] = efficiency
         
+        # ── 年化收益率與時機（用於 report_formatter.py 顯示）
+        import math
+        metrics['annual_return'] = round(iv * 0.05 * math.sqrt(dte / 365) * 100, 1) if dte > 0 else 0.0
+        if option.dte < 14 and stock.rsi > 60:
+            metrics['timing'] = '短線'
+        elif option.dte <= 45:
+            metrics['timing'] = '波段'
+        else:
+            metrics['timing'] = '長期'
+        
         # ⑨ 52W位置
         if stock.high_52w > stock.low_52w:
             pos_52w = (price - stock.low_52w) / (stock.high_52w - stock.low_52w) * 100

@@ -42,13 +42,14 @@ def format_report(data, today):
         elif adj >= 50: return "2%"
         return "1%"
     
-    def dte_display(r, today_str):
+    def dte_display(r, today):
         opt = r.get('option', {})
-        if opt.get('exp') and opt.get('dte'):
-            days_to_earn = (datetime.strptime(opt['exp'], '%Y-%m-%d') - today).days - opt['dte']
-            earnings_days = opt.get('days_to_earnings', 999)
-            if earnings_days < 999:
-                return f"財{int(earnings_days)}天"
+        # 有財報：顯示距財報天數
+        earnings_days = r.get('days_to_earnings', 999)
+        if earnings_days < 999:
+            return f"財{int(earnings_days)}天"
+        # 無財報：顯示 DTE
+        if opt.get('dte', 0) > 0:
             return f"{opt['dte']}D"
         return "(無財報)"
     
