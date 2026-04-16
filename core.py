@@ -38,6 +38,7 @@ class OptionData:
     oi: int
     spread: float
     delta: float
+    tier: str = 'unknown'
 
 @dataclass
 class ScoreResult:
@@ -304,7 +305,7 @@ class SellPutV5Skill:
                     if attempt < 2:
                         import time; time.sleep(1.5)
                         continue
-                    return OptionData(exp=None, dte=30, strike=price*0.95, iv=30, bid=0, ask=0, oi=0, spread=5, delta=-0.5)
+                    return OptionData(exp=None, dte=30, strike=price*0.95, iv=30, bid=0, ask=0, oi=0, spread=5, delta=-0.5, tier='t3')
 
                 # 篩選 20-60 DTE
                 valid_exps = []
@@ -337,9 +338,9 @@ class SellPutV5Skill:
                     if fallback_exps:
                         selected_exp, selected_dte = min(fallback_exps, key=lambda x: x[1])
                     else:
-                        return OptionData(exp=None, dte=0, strike=price*0.95, iv=0, bid=0, ask=0, oi=0, spread=5, delta=-0.5)
+                        return OptionData(exp=None, dte=0, strike=price*0.95, iv=0, bid=0, ask=0, oi=0, spread=5, delta=-0.5, tier='t3')
                 else:
-                    return OptionData(exp=None, dte=30, strike=price*0.95, iv=30, bid=0, ask=0, oi=0, spread=5, delta=-0.5)
+                    return OptionData(exp=None, dte=30, strike=price*0.95, iv=30, bid=0, ask=0, oi=0, spread=5, delta=-0.5, tier='t3')
 
                 # 抓 Put 數據：優先使用有真實報價的最近 ATM Put，IV 無效時用 BSM 回算
                 opt = tk.option_chain(selected_exp)
@@ -359,6 +360,7 @@ class SellPutV5Skill:
                 active = puts[puts['bid'] > 0].copy()
 
                 if not active.empty:
+                    tier = 't1'  # t1: real bid/ask prices
                     # 選 dist_from_atm 最小的活躍 put
                     best = active.loc[active['dist_from_atm'].idxmin()]
                     strike = float(best['strike'])
@@ -394,6 +396,7 @@ class SellPutV5Skill:
                     # ----------------------------------------------------------------
                     traded = puts[puts['lastPrice'] > 0].copy()
                     if not traded.empty:
+                        tier = 't2'  # t2: lastPrice BSM back-calculation
                         near_atm = traded[traded['dist_from_atm'] < price * 0.05]  # 5% ATM range
                         if near_atm.empty:
                             near_atm = traded
@@ -420,6 +423,7 @@ class SellPutV5Skill:
                         # ----------------------------------------------------------------
                         atm_put = puts.loc[puts['dist_from_atm'].idxmin()]
                         strike = float(atm_put['strike'])
+                        tier = 't3'  # t3: HV × 1.3 estimate
                         iv = stock.hv * 1.3  # IV ≈ HV × 1.3 是常見經驗值
                         spread = 10
 
@@ -435,13 +439,14 @@ class SellPutV5Skill:
 
                 return OptionData(
                     exp=selected_exp, dte=selected_dte, strike=strike,
-                    iv=iv, bid=bid, ask=ask, oi=oi, spread=spread, delta=delta
+                    iv=iv, bid=bid, ask=ask, oi=oi, spread=spread, delta=delta,
+                    tier=tier
                 )
             except Exception:
                 if attempt < 2:
                     import time; time.sleep(1.5)
                     continue
-                return OptionData(exp=None, dte=30, strike=price*0.95, iv=30, bid=0, ask=0, oi=0, spread=5, delta=-0.5)
+                return OptionData(exp=None, dte=30, strike=price*0.95, iv=30, bid=0, ask=0, oi=0, spread=5, delta=-0.5, tier='t3')
 
     
     def calculate_scores(self, stock: StockData, option: OptionData) -> Tuple[Dict[str, int], Dict[str, float]]:
