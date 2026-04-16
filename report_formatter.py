@@ -219,7 +219,7 @@ def format_report(data, today):
     # VIX info
     lines.append(f"VIX: {data['vix']:.1f}（{data['vix_label']}）")
     lines.append("")
-    
+    # ============ 組合風險摘要（R-E）============    forbidden_count = sum(1 for r in data["stocks"] if r.get("is_forbidden", False))    high_spread_tickers = [r["ticker"] for r in data["stocks"] if float(r.get("option", {}).get("spread", 0) or 0) > 10 and not r.get("is_forbidden", False)]    lines.append("")    lines.append("【組合風險摘要】")    lines.append(f"🚫 禁止新倉: {forbidden_count} 檔")    if high_spread_tickers:        lines.append(f"⚠️ 高Spread(>10%): {", ".join(high_spread_tickers)}")    
     # ============ 微信通知格式（還原）============
     lines.append("=" * 60)
     lines.append("【微信通知格式】")
