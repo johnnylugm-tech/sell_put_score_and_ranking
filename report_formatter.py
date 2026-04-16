@@ -180,12 +180,13 @@ def format_report(data, today):
 
 
 def main():
-    """主入口：執行報告生成"""
+    """主入口：執行報告生成（JSON 模式）"""
     import subprocess
     result = subprocess.run(
         ['python3', 'run.py', '--json'],
         capture_output=True, text=True, timeout=300,
-        cwd=os.path.dirname(os.path.abspath(__file__))
+        cwd=os.path.dirname(os.path.abspath(__file__)),
+        env={**os.environ, "PYTHONPATH": os.path.dirname(os.path.abspath(__file__))}
     )
     if result.returncode != 0:
         print(f"❌ 執行失敗: {result.stderr}")
