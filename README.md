@@ -59,20 +59,21 @@ pip install -r requirements.txt
 
 ```bash
 # 完整執行（評分 + Excel報告）
-python3 sellput_v5/run.py
+python3 run.py
 
 # 查看幫助
-python3 sellput_v5/run.py --help
+python3 run.py --help
+
+# JSON 輸出（供自動化使用）
+python3 run.py --json
 ```
 
-### 自動化（macOS launchd）
+### 自動化
 
+crontab 執行：
 ```bash
-# 安裝每週一定時執行
-bash install_launchd.sh
-
-# 手動觸發測試
-launchctl start com.qclaw.sellput-v50
+# 每週一至五 21:00 台北時間執行
+0 21 * * 1-5 cd ~/.qclaw/workspace/skills/sellput-v5-skill && python3 sell_put_report_telegram.py
 ```
 
 ---
@@ -81,14 +82,19 @@ launchctl start com.qclaw.sellput-v50
 
 ```
 sell_put_score_and_ranking/
-├── sellput_v5/
-│   ├── core.py        # 核心評分邏輯
-│   ├── excel_gen.py   # Excel 報告生成
-│   ├── cron_run.py    # 定時執行腳本
-│   └── run.py         # CLI 入口
-├── tests/             # 測試檔案
-├── docs/              # 文件
-├── README.md
+├── run.py              # CLI 入口（完整排名報告 + Excel）
+├── report_formatter.py  # 格式化輸出（自動化使用）
+├── sell_put_report_telegram.py  # 直接發送 Telegram（繞過 AI Agent）
+├── core.py             # 核心評分邏輯
+├── excel_gen.py        # Excel 報告生成
+├── cron_run.py         # 定時執行腳本
+├── docs/               # 文件
+│   └── v5.0_MODEL.md   # 模型設計文件
+├── case_studies/       # 案例研究
+├── memory/             # 記憶與歸檔
+├── skills/             # 技能目錄
+│   └── stock-market-pro/
+│       └── scripts/    # 額外腳本（A50分析、IV日誌等）
 ├── requirements.txt
 ├── install_launchd.sh
 └── LICENSE
@@ -100,13 +106,12 @@ sell_put_score_and_ranking/
 
 ### ① 距52W低點（23分）
 
-```
-評分標準：
-≥ 200% → 23分
-150% – 200% → 20分
-100% – 150% → 17分
-50% – 100% → 13分
-```
+| 距低點漲幅 | 分數 |
+|-----------|------|
+| ≥ 200% | 23 |
+| 150% – 200% | 20 |
+| 100% – 150% | 17 |
+| 50% – 100% | 13 |
 
 ### ③ 基本面（28分）
 
@@ -164,12 +169,10 @@ Sell Put 評分模型 v5.0
 執行日期: 2026-04-11 00:00:00
 股票數量: 16 檔
 
-【排名】
-排名   Ticker  Sector         等級   總分
---------------------------------------------------
-1       MU     Semiconductor  A      90
-2       AVGO   Semiconductor  A      80
-3       TSM     Semiconductor  B      79
+【排名報告 v5.0】
+  # 代碼   等 總分     現價  IV%   HV%    PE   RSI  距低%      DTE     履約價
+----------------------------------------------------------------------------------------------------------------------
+  1 MU      A  92.0  426.56  38.2  39.8  25.6   55   89.3    38D   392.44
 ...
 
 生成 Excel: ./sell_put_v5.0_20260411.xlsx
@@ -203,14 +206,8 @@ MIT License - 詳見 LICENSE 文件
 
 ---
 
-## 🤝 貢獻
-
-歡迎提交 Issue 和 Pull Request！
-
----
-
 ## 📚 延伸閱讀
 
-- [v5.0 模型設計文件](./docs/v5.0_model.md)
+- [v5.0 模型設計文件](./docs/v5.0_MODEL.md)
 - [維度評分細則](./docs/scoring_rules.md)
 - [Black-Scholes 選擇權定價](https://en.wikipedia.org/wiki/Black%E2%80%93Scholes_model)
