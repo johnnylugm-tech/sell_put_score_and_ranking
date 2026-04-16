@@ -55,6 +55,10 @@ def to_dict(r, today):
             'exp': r.option.exp if r.option else None,
             'bid': r.option.bid if r.option else 0,
             'ask': r.option.ask if r.option else 0,
+            'delta': getattr(r.option, 'delta', 0) if r.option else 0,
+            'theta': getattr(r.option, 'theta', 0) if r.option else 0,
+            'vega': getattr(r.option, 'vega', 0) if r.option else 0,
+            'strike_deviation': getattr(r.option, 'strike_deviation', 0) if r.option else 0,
         },
     }
 

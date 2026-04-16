@@ -28,7 +28,7 @@ def format_report(data, today):
     
     # 完整排名表格（所有 16 檔）
     lines.append("【排名報告 v5.0】")
-    header = f"{'#':<3} {'代碼':<6} {'等':<2} {'總分':>5} {'現價':>7} {'IV%':>5} {'HV%':>5} {'IV/HV':>6} {'PE':>5} {'RSI':>5} {'距低%':>6} {'DTE':>8} {'履約價':>8} {'年化%':>7} {'倉位':>5} {'時機':<5} {'⚠️'}"
+    header = f"{'#':<3} {'代碼':<6} {'等':<2} {'總分':>5} {'現價':>7} {'IV%':>5} {'HV%':>5} {'IV/HV':>6} {'PE':>5} {'RSI':>5} {'Delta':>6} {'距低%':>6} {'DTE':>8} {'履約價':>8} {'年化%':>8} {'倉位':>5} {'時機':<5} {'⚠️'}"
     lines.append(header)
     lines.append("-" * 150)
     
@@ -151,9 +151,20 @@ def format_report(data, today):
         else:
             iv_hv_str = "-"
 
-        lines.append(f"{i:<3} {r['ticker']:<6} {r['grade']:<2} {r['adj_total']:>5.1f} {price_str:>7} {iv_str:>5} {hv_val:>5.1f} {iv_hv_str:>6} {pe_str:>6} {rsi_str:>5} {dist_low:>6.1f} {dte_str:>8} {strike_str:>8} {ann_str:>7} {pos_str:>5} {timing_str:<5} {warn_str}{forbid_mark}{tier_mark}")
+        # Delta
+        delta_val = opt.get('delta', 0) or 0
+        delta_str = f"{delta_val:.2f}"
+        # Strike偏離警告
+        strike_dev = opt.get('strike_deviation', 0) or 0
+        strike_warn = ""
+        if strike_dev > 0.02:
+            strike_warn = "ITM"
+        elif strike_dev < -0.05:
+            strike_warn = "深OTM"
+
+        lines.append(f"{i:<3} {r['ticker']:<6} {r['grade']:<2} {r['adj_total']:>5.1f} {price_str:>7} {iv_str:>5} {hv_val:>5.1f} {iv_hv_str:>6} {pe_str:>6} {rsi_str:>5} {delta_str:>6} {dist_low:>6.1f} {dte_str:>8} {strike_str:>8} {ann_str:>8} {pos_str:>5} {timing_str:<5} {warn_str}{strike_warn}{forbid_mark}{tier_mark}")
     
-    lines.append("─" * 170)
+    lines.append("─" * 185)
     lines.append("📌 過熱 = RSI>70，短線回檔風險高")
     lines.append("📌 PE* = Forward PE，可能失真（<10=極低預期成長，>50=虧損或週期股）")
     lines.append("📌 PE† = TTM PE（Forward N/A）")
@@ -162,7 +173,7 @@ def format_report(data, today):
     lines.append("📌 年化% ≈ IV×0.05×√(DTE/365)×100（實際權利金約為理論最大值的 10-15%）")
     lines.append("📌 倉位% = 根據總分(A/B/C/D)與年化%連動計算，1-5%")
     lines.append("📌 時機：短線(DTE<14+RSI>60) / 波段(DTE 14-45) / 長期(DTE>45)")
-    lines.append("📌 ⚠️ = 有警告（過熱/財報/IV低估等）；無警告通常代表 tier=t1（真實報價）")
+    lines.append("📌 ⚠️ = 有警告（過熱/財報🚫/IV低估/ITM/板塊集中等）；ITM = 履約價高於現價，Delta>0.55，風險較高")
     lines.append("")
     
     # VIX info
@@ -227,3 +238,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+    lines.append("📌 最大虧損 ≈ 現價 - 履約價（被指派時）；Delta 為期權價格對標的價格變化的敏感度（賣Put適用範圍 0.2-0.5）")
+    lines.append("📌 Delta = 標的價格+$1 時期權價格的變化量；Theta = 每日時間價值衰減（$）；Vega = IV+1% 時期權價格的變化量")

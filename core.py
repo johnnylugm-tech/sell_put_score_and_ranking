@@ -38,6 +38,9 @@ class OptionData:
     oi: int
     spread: float
     delta: float
+    theta: float = 0.0   # Daily theta (decay in $)
+    vega: float = 0.0   # Vega ($ per 1% IV change)
+    strike_deviation: float = 0.0  # (actual_strike - target_strike) / target_strike; positive=ITM, negative=OTM
     tier: str = 'unknown'
 
 @dataclass
@@ -430,23 +433,36 @@ class SellPutV5Skill:
                 # ----------------------------------------------------------------
                 # Black-Scholes Delta (for reference, even if IV is estimated)
                 # ----------------------------------------------------------------
+                # ── Black-Scholes Greeks (Delta, Theta, Vega) ──────────────────
                 try:
                     S2, K2, T2, r2, sigma2 = price, strike, selected_dte/365, 0.045, max(iv, 1)/100
                     d1 = (np.log(S2/K2) + (r2 + 0.5*sigma2**2)*T2) / (sigma2*np.sqrt(T2))
+                    d2 = d1 - sigma2*np.sqrt(T2)
                     delta = norm.cdf(d1) - 1
+                    # Theta (daily, $): -S*sigma*pdf(d1)/(2*sqrt(T)) * exp(-r*T) / 365
+                    theta = -0.5 * S2 * sigma2 * norm.pdf(d1) / np.sqrt(T2) * np.exp(-r2*T2) / 365
+                    # Vega ($ per 1% IV change): S*sqrt(T)*pdf(d1)*0.01
+                    vega = S2 * np.sqrt(T2) * norm.pdf(d1) * 0.01
                 except:
                     delta = -0.5
+                    theta = 0.0
+                    vega = 0.0
+
+                # Strike deviation: (actual - 8% OTM target) / target; positive=ITM, negative=deep OTM
+                target_8pct = price * 0.92
+                strike_deviation = (strike - target_8pct) / target_8pct if target_8pct > 0 else 0.0
 
                 return OptionData(
                     exp=selected_exp, dte=selected_dte, strike=strike,
                     iv=iv, bid=bid, ask=ask, oi=oi, spread=spread, delta=delta,
+                    theta=theta, vega=vega, strike_deviation=strike_deviation,
                     tier=tier
                 )
             except Exception:
                 if attempt < 2:
                     import time; time.sleep(1.5)
                     continue
-                return OptionData(exp=None, dte=30, strike=price*0.95, iv=30, bid=0, ask=0, oi=0, spread=5, delta=-0.5, tier='t3')
+                return OptionData(exp=None, dte=30, strike=price*0.95, iv=30, bid=0, ask=0, oi=0, spread=5, delta=-0.5, theta=0.0, vega=0.0, strike_deviation=0.0, tier='t3')
 
     
     def calculate_scores(self, stock: StockData, option: OptionData) -> Tuple[Dict[str, int], Dict[str, float]]:
@@ -653,6 +669,24 @@ class SellPutV5Skill:
                 ))
             except Exception as e:
                 print(f"Error processing {ticker}: {e}")
-        
+
+        # ── P1 新增：S5 板塊集中度懲罰 ──────────────────────────────
+        from collections import Counter
+        sector_counts = Counter(r.sector for r in results)
+        max_count = max(sector_counts.values()) if sector_counts else 1
+        for r in results:
+            if sector_counts[r.sector] >= 3 and max_count >= 3:
+                # 該板塊有 ≥3 檔 → s5 扣 2 分
+                r.scores['s5'] = max(r.scores.get('s5', 0) - 2, 0)
+                r.warnings.append(f"⚠️板塊集中({sector_counts[r.sector]}檔)")
+                # 重新計算總分
+                r.raw_total = sum(r.scores.values())
+                r.adj_total = r.raw_total * 0.8 if r.scores.get('s3', 0) < 10 else r.raw_total
+                # 重新評級
+                if r.adj_total >= 80: r.grade = 'A'
+                elif r.adj_total >= 65: r.grade = 'B'
+                elif r.adj_total >= 50: r.grade = 'C'
+                else: r.grade = 'D'
+
         results.sort(key=lambda x: x.adj_total, reverse=True)
         return results
