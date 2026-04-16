@@ -126,7 +126,7 @@ def format_report(data, today):
         
         # tier
         tier = opt.get('tier', 'unknown')
-        tier_mark = "" if tier == 'real' else f"⚠️t{{tier}}"
+        tier_mark = "" if tier == 'real' else f"⚠️t{tier}"
         
         forbid_mark = "🚫" if r.get('is_forbidden') else ""
         
