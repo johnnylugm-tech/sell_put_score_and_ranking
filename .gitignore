@@ -176,15 +176,11 @@ skills/xurl/
 
 # ─── stock-market-pro extra scripts (not in GitHub) ───
 skills/stock-market-pro/.clawhub/
-skills/stock-market-pro/scripts/00637l_analysis.py
 skills/stock-market-pro/scripts/ddg_search.py
 skills/stock-market-pro/scripts/get_52w.py
 skills/stock-market-pro/scripts/get_hv.py
-skills/stock-market-pro/scripts/iv_history_logger.py
-skills/stock-market-pro/scripts/iv_weekly_monitor.py
 skills/stock-market-pro/scripts/news.py
 skills/stock-market-pro/scripts/options_links.py
-skills/stock-market-pro/scripts/portfolio_update.py
 skills/stock-market-pro/scripts/sell_put_analysis.py
 skills/stock-market-pro/scripts/sell_put_ranking.py
 skills/stock-market-pro/scripts/uw.py
