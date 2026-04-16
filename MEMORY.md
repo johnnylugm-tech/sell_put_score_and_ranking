@@ -26,6 +26,11 @@
 - 目標：分批減碼
 - 停損：$18.04
 
+## Sell Put v5.0 修復日誌（2026-04-16 晚間）
+
+收到 5 份外部評估報告，修復 22 個問題。
+最終版本：v5.0_MODEL_REVISED FINAL（`12e3a83`）
+
 ---
 
 ## Sell Put 系統
@@ -35,6 +40,13 @@
 **每天早上 09:00（Taipei）** 收到一份 16 檔股票的評估報告，用於判斷要不要開新倉。
 
 **終極問題：** 如果被行權，我願意以這個履約價長期持有這檔股票嗎？
+
+**模型版本：** v5.0_MODEL_REVISED FINAL
+- 代碼：`~/.qclaw/workspace/skills/sellput-v5-skill/`
+- GitHub：`https://github.com/johnnylugm-tech/sell_put_score_and_ranking`
+- 評估分數：87.2/100（5份外部評估平均）
+
+**當前狀態：** 全部22個問題已修復，結案
 
 **進場信號（三選一）：**
 1. Gap 大跌（< 履約價 + 5%）
