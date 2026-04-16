@@ -117,11 +117,14 @@ def format_report(data, today):
         strike = opt.get('strike', 0)
         strike_str = f"{strike:.0f}" if strike else "N/A"
         
-        # 年化%（顯示理論值與合理區間）
+        # 年化%（顯示理論值與合理區間；小於1%時顯示 <1）
         ann = r.get('annual_return', 0) or 0
         ann_min = round(ann * 0.10, 1)
         ann_max = round(ann * 0.15, 1)
-        ann_str = f"{ann:.0f}({ann_min:.0f}-{ann_max:.0f})"
+        if ann < 1:
+            ann_str = f"{ann:.0f}(<1)"
+        else:
+            ann_str = f"{ann:.0f}({ann_min:.0f}-{ann_max:.0f})"
         
         # 倉位
         pos_str = calc_position(r)
@@ -159,7 +162,7 @@ def format_report(data, today):
     lines.append("📌 年化% ≈ IV×0.05×√(DTE/365)×100（實際權利金約為理論最大值的 10-15%）")
     lines.append("📌 倉位% = 根據總分(A/B/C/D)與年化%連動計算，1-5%")
     lines.append("📌 時機：短線(DTE<14+RSI>60) / 波段(DTE 14-45) / 長期(DTE>45)")
-    lines.append("📌 ⚠️t2 = lastPrice BSM回算 / ⚠️t3 = HV×1.3估算（t1=真實報價，正常顯示）")
+    lines.append("📌 ⚠️ = 有警告（過熱/財報/IV低估等）；無警告通常代表 tier=t1（真實報價）")
     lines.append("")
     
     # VIX info
