@@ -28,7 +28,7 @@ def format_report(data, today):
     
     # 完整排名表格（所有 16 檔）
     lines.append("【排名報告 v5.0】")
-    header = f"{'#':<3} {'代碼':<6} {'等':<2} {'總分':>5} {'現價':>7} {'IV%':>5} {'HV%':>5} {'IV/HV':>6} {'PE':>5} {'RSI':>5} {'Delta':>6} {'距低%':>6} {'DTE':>8} {'履約價':>8} {'年化%':>8} {'倉位':>5} {'時機':<5} {'⚠️'}"
+    header = f"{'#':<3} {'代碼':<6} {'等':<2} {'總分':>5} {'現價':>7} {'IV%':>5} {'HV%':>5} {'IV/HV':>6} {'Delta':>6} {'Theta':>6} {'Vega':>6} {'Spread%':>7} {'PE':>5} {'RSI':>5} {'距低%':>6} {'DTE':>8} {'履約價':>8} {'年化%':>8} {'倉位':>5} {'時機':<5} {'⚠️'}"
     lines.append(header)
     lines.append("-" * 150)
     
@@ -84,11 +84,20 @@ def format_report(data, today):
         if r.get('days_to_earnings', 999) <= 7:
             parts.append("財報")
 
-        # IV低估：IV/HV < 0.2 且 HV > 30
+        # IV低估：IV/HV < 0.2 且 HV > 30（市場定價嚴重偏低）
         hv_val = r.get('hv', 0) or 0
         opt_iv_val = r.get('option', {}).get('iv', 0) or 0
         if hv_val > 30 and 0 < opt_iv_val < hv_val * 0.2:
             parts.append("IV低估")
+        # IV異常：IV/HV < 0.1（極度偏離）或 IV > HV×3（估計值疑似錯誤）
+        if hv_val > 10 and 0 < opt_iv_val < hv_val * 0.1:
+            if "IV低估" not in parts:
+                parts.append("IV低估")
+
+        # 數據不穩：tier=t3（HV×1.3估算，非真實報價）
+        tier = r.get('option', {}).get('tier', 'unknown')
+        if tier == 't3':
+            parts.append("數據不穩")
 
         # Merge with ScoreResult.warnings (板塊集中, Put覆蓋財報, etc.)
         extra_warns = r.get('warnings', [])
@@ -162,6 +171,15 @@ def format_report(data, today):
         # Delta
         delta_val = opt.get('delta', 0) or 0
         delta_str = f"{delta_val:.2f}"
+        theta_val = opt.get('theta', 0) or 0
+        theta_str = f"{theta_val:.2f}" if abs(theta_val) > 0.001 else "0.00"
+        vega_val = opt.get('vega', 0) or 0
+        vega_str = f"{vega_val:.2f}" if abs(vega_val) > 0.001 else "0.00"
+
+        # Spread%
+        spread_val = opt.get('spread', 0) or 0
+        spread_str = f"{spread_val:.1f}" if spread_val > 0 else "0.0"
+
         # Strike偏離警告
         strike_dev = opt.get('strike_deviation', 0) or 0
         strike_warn = ""
@@ -170,9 +188,9 @@ def format_report(data, today):
         elif strike_dev < -0.05:
             strike_warn = "深OTM"
 
-        lines.append(f"{i:<3} {r['ticker']:<6} {r['grade']:<2} {r['adj_total']:>5.1f} {price_str:>7} {iv_str:>5} {hv_val:>5.1f} {iv_hv_str:>6} {pe_str:>6} {rsi_str:>5} {delta_str:>6} {dist_low:>6.1f} {dte_str:>8} {strike_str:>8} {ann_str:>8} {pos_str:>5} {timing_str:<5} {warn_str}{strike_warn}{forbid_mark}{tier_mark}")
+        lines.append(f"{i:<3} {r['ticker']:<6} {r['grade']:<2} {r['adj_total']:>5.1f} {price_str:>7} {iv_str:>5} {hv_val:>5.1f} {iv_hv_str:>6} {delta_str:>6} {theta_str:>6} {vega_str:>6} {spread_str:>7} {pe_str:>5} {rsi_str:>5} {dist_low:>6.1f} {dte_str:>8} {strike_str:>8} {ann_str:>8} {pos_str:>5} {timing_str:<5} {warn_str}{strike_warn}{forbid_mark}{tier_mark}")
     
-    lines.append("─" * 185)
+    lines.append("─" * 220)
     lines.append("📌 過熱 = RSI>70，短線回檔風險高")
     lines.append("📌 PE* = Forward PE，可能失真（<10=極低預期成長，>50=虧損或週期股）")
     lines.append("📌 PE† = TTM PE（Forward N/A）")
@@ -181,7 +199,7 @@ def format_report(data, today):
     lines.append("📌 年化% ≈ IV×0.05×√(DTE/365)×100（實際權利金約為理論最大值的 10-15%）")
     lines.append("📌 倉位% = 根據總分(A/B/C/D)與年化%連動計算，1-5%")
     lines.append("📌 時機：短線(DTE<14+RSI>60) / 波段(DTE 14-45) / 長期(DTE>45)")
-    lines.append("📌 ⚠️ = 有警告（過熱/財報🚫/IV低估/ITM/板塊集中等）；ITM = 履約價高於現價，Delta>0.55，風險較高")
+    lines.append("📌 ⚠️ = 有警告（過熱/財報🚫/IV低估/IV異常/ITM/數據不穩/板塊集中等）；ITM = 履約價高於現價，Delta>0.55，風險較高")
     lines.append("")
     
     # VIX info
@@ -222,7 +240,7 @@ def format_report(data, today):
         lines.append(f"⚠️ 基本面<10分: {', '.join(s['ticker'] for s in low_fund)}")
     
     lines.append("📌 最大虧損 ≈ 現價 - 履約價（被指派時）；Delta 為期權價格對標的價格變化的敏感度（賣Put適用範圍 0.2-0.5）")
-    lines.append("📌 Delta = 標的價格+$1 時期權價格的變化量；Theta = 每日時間價值衰減（$）；Vega = IV+1% 時期權價格的變化量")
+    lines.append("📌 Delta = 標的+$1 時期權變化；Theta = 每日時間衰減（$）；Vega = IV+1% 時權利金變化；IV低估 = IV/HV<0.2（市場低估）；IV異常 = IV/HV<0.1（數據可能失效）；數據不穩 = tier=t3（HV×1.3估算）")
     return "\n".join(lines)
 
 
