@@ -90,6 +90,14 @@ def format_report(data, today):
         if hv_val > 30 and 0 < opt_iv_val < hv_val * 0.2:
             parts.append("IV低估")
 
+        # Merge with ScoreResult.warnings (板塊集中, Put覆蓋財報, etc.)
+        extra_warns = r.get('warnings', [])
+        for w in extra_warns:
+            # Strip the ⚠️ prefix if present
+            w_clean = w.replace('⚠️', '').strip()
+            if w_clean and w_clean not in parts:
+                parts.append(w_clean)
+
         return " / ".join(parts) if parts else ""
     
     for i, r in enumerate(data['stocks'], 1):

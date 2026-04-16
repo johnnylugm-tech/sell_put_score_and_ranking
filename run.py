@@ -41,6 +41,7 @@ def to_dict(r, today):
         'rocc_adj': r.metrics.get('rocc_adj', 0) if r.metrics else 0,
         'pop': r.metrics.get('pop', 0) if r.metrics else 0,
         'efficiency': r.metrics.get('efficiency', 0) if r.metrics else 0,
+        'warnings': r.warnings if hasattr(r, 'warnings') else [],
         'stock': {
             'price': r.stock.price,
             'rsi': r.stock.rsi,
