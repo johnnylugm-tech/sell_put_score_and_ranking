@@ -205,56 +205,8 @@ def format_report(data, today):
         lines.append(f"{i:<3} {r['ticker']:<6} {r['grade']:<2} {r['adj_total']:>5.1f} {price_str:>7} {iv_str:>5} {hv_val:>5.1f} {iv_hv_str:>6} {delta_str:>5} {theta_str:>5} {gamma_str:>6} {vega_str:>5} {spread_str:>6} {ann_str:>11} {margin_eff_str:>6} {pe_str:>5} {rsi_str:>5} {dist_low:>6.1f} {dte_str:>8} {strike_str:>8} {pos_str:>5} {timing_str:<5} {warn_str}{strike_warn}{forbid_mark}{tier_mark}")
     
     lines.append("─" * 250)
-    lines.append("📌 過熱 = RSI>70，短線回檔風險高")
-    lines.append("📌 PE* = Forward PE，可能失真（<10=極低預期成長，>50=虧損或週期股）")
-    lines.append("📌 PE† = TTM PE（Forward N/A）")
-    lines.append("📌 高IV低流動 = IV>80% 且市值<$100B，流動性風險高")
-    lines.append("📌 履約價 = 現價 × 0.92（8% OTM）")
-    lines.append("📌 年化% = IV×0.05×√(DTE/365)×100×(1-Spread%)；>100% 為理論值，括弧內為合理區間（×10-15%）")
-    lines.append("📌 倉位% = 根據總分(A/B/C/D)與年化%連動計算，1-5%")
-    lines.append("📌 時機：短線(DTE<14+RSI>60) / 波段(DTE 14-45) / 長期(DTE>45)")
-    lines.append("📌 ⚠️ = 有警告（過熱/財報🚫/IV低估/IV異常/ITM/數據不穩/板塊集中等）；ITM = 履約價高於現價，Delta>0.55，風險較高")
-    lines.append("")
-    
-    # VIX info
     lines.append(f"VIX: {data['vix']:.1f}（{data['vix_label']}）")
-    lines.append("")
-    # ============ 組合風險摘要（R-E）============    forbidden_count = sum(1 for r in data["stocks"] if r.get("is_forbidden", False))    high_spread_tickers = [r["ticker"] for r in data["stocks"] if float(r.get("option", {}).get("spread", 0) or 0) > 10 and not r.get("is_forbidden", False)]    lines.append("")    lines.append("【組合風險摘要】")    lines.append(f"🚫 禁止新倉: {forbidden_count} 檔")    if high_spread_tickers:        lines.append(f"⚠️ 高Spread(>10%): {", ".join(high_spread_tickers)}")    
-    # ============ 微信通知格式（還原）============
-    lines.append("=" * 60)
-    lines.append("【微信通知格式】")
-    lines.append("=" * 60)
-    
-    a_stocks = [s for s in data['stocks'] if s['grade'] == 'A'][:8]
-    lines.append(f"📊 Sell Put v5.0 | {today.strftime('%Y-%m-%d')} | VIX={data['vix']:.1f}")
-    lines.append("")
-    lines.append(f"A級 TOP {len(a_stocks)}:")
-    
-    for i, s in enumerate(a_stocks, 1):
-        forbid = "🚫" if s['is_forbidden'] else ""
-        # IV/HV：直接從表格欄位計算（HV 和 IV 都必定存在）
-        hv_val = s.get('hv', 0) or 0
-        opt_iv_val = s.get('option', {}).get('iv', 0) or 0
-        if hv_val > 0 and opt_iv_val > 0:
-            iv_hv_ratio = round(opt_iv_val / hv_val, 2)
-        else:
-            iv_hv_ratio = s.get('metrics', {}).get('iv_hv_ratio', 0) or 0
-        lines.append(f"{i}. {s['ticker']} {s['sector'][:4]} {s['grade']} {s['adj_total']:.0f}分 IV/HV={iv_hv_ratio:.2f} {forbid}")
-    
-    # Forbidden
-    forbidden = [s for s in data['stocks'] if s['is_forbidden']]
-    if forbidden:
-        lines.append("")
-        lines.append(f"🚫 禁止新倉: {', '.join(s['ticker'] for s in forbidden)}")
-    
-    # Low fundamental
-    low_fund = [s for s in data['stocks'] if s.get('scores', {}).get('s3', 0) < 10]
-    if low_fund:
-        lines.append("")
-        lines.append(f"⚠️ 基本面<10分: {', '.join(s['ticker'] for s in low_fund)}")
-    
-    lines.append("📌 最大虧損 ≈ 現價 - 履約價（被指派時）；Delta 為期權價格對標的價格變化的敏感度（賣Put適用範圍 0.2-0.5）")
-    lines.append("📌 Delta = 標的+$1 時期權變化；Delta 絕對值越大（→0.5）= ATM/ITM 程度越高，風險越大；Theta = 每日時間衰減（$）；Gamma = Delta對標的$1變化的加速率；Vega = IV+1% 時權利金變化；IV低估 = IV/HV<0.2（市場低估）；IV異常 = IV/HV<0.1（數據可能失效）；Margin_Eff = 年化淨回報相對於20%保證金的效率")
+    lines.append("📌 過熱=RSI>70 | PE*=Forward PE失真 | ⚠️=警告(過熱/財報/IV低估/ITM/板塊集中)")
     return "\n".join(lines)
 
 
