@@ -58,7 +58,7 @@ def format_report(data, today):
     def pe_display(r):
         fwd = r.get('fwd_pe')
         ttm = r.get('ttm_pe')
-        if fwd and (fwd < 10 or fwd > 50):
+        if fwd and (fwd <= 0 or fwd > 100):  # PE* = 虧損(<=0) 或 PE>100（極度失真）
             if ttm and ttm > 0:
                 return f"{fwd:.0f}*/{ttm:.0f}"
             return f"{fwd:.0f}*"
@@ -124,7 +124,7 @@ def format_report(data, today):
         
         # tier
         tier = opt.get('tier', 'unknown')
-        tier_mark = "" if tier in ('real', 't1') else f"⚠️{tier}"
+        tier_mark = "" if tier in ('real', 't1') else f"{tier}"  # t2/t3 不再標 ⚠️ 前綴
         
         forbid_mark = "🚫" if r.get('is_forbidden') else ""
         
@@ -165,18 +165,15 @@ def format_report(data, today):
         margin_eff_str = f"{margin_eff:.1f}" if margin_eff > 0 else "0.0"
 
         # Strike偏離警告
-        strike_dev = opt.get('strike_deviation', 0) or 0
+        # ITM/OTM：拿「履約價」跟「現價」比（delta > 0.5 = ITM，適用於 Put）
+        # 報告中 Delta 欄已顯示此資訊，⚠️ 欄不再重複
         strike_warn = ""
-        if strike_dev > 0.02:
-            strike_warn = "ITM"
-        elif strike_dev < -0.05:
-            strike_warn = "深OTM"
 
-        lines.append(f"{i:<3} {r['ticker']:<6} {r['grade']:<2} {r['adj_total']:>5.1f} {price_str:>7} {iv_str:>5} {hv_val:>5.1f} {iv_hv_str:>6} {delta_str:>5} {theta_str:>5} {gamma_str:>6} {vega_str:>5} {spread_str:>6} {ann_str:>11} {margin_eff_str:>6} {pe_str:>5} {rsi_str:>5} {dist_low:>6.1f} {dte_str:>8} {strike_str:>8} {pos_str:>5} {timing_str:<5} {warn_str}{strike_warn}{forbid_mark}{tier_mark}")
+        lines.append(f"{i:<3} {r['ticker']:<6} {r['grade']:<2} {r['adj_total']:>5.1f} {price_str:>7} {iv_str:>5} {hv_val:>5.1f} {iv_hv_str:>6} {delta_str:>5} {theta_str:>5} {gamma_str:>6} {vega_str:>5} {spread_str:>6} {ann_str:>11} {margin_eff_str:>6} {pe_str:>5} {rsi_str:>5} {dist_low:>6.1f} {dte_str:>8} {strike_str:>8} {pos_str:>5} {timing_str:<5} {warn_str}{strike_warn}{forbid_mark} {tier_mark}")
     
     lines.append("─" * 250)
     lines.append(f"VIX: {data['vix']:.1f}（{data['vix_label']}）")
-    lines.append("📌 過熱=RSI>70 | PE*=Forward PE失真 | ⚠️=警告(過熱/財報/IV低估/ITM/板塊集中)")
+    lines.append("📌 過熱=RSI>70 | PE*=PE<=0 或 PE>100（失真）| ⚠️=core.py產生的警告 | t2=BSM回算IV | t3=HV×1.3估算")
     return "\n".join(lines)
 
 
