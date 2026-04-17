@@ -516,7 +516,7 @@ class SellPutV5Skill:
             else: pe_score = 2
 
             if stock.fcf > 10e9: fcf_score = 10
-            elif stock.fcf > 1e9: fcf_score = 7
+            elif stock.fcf >= 1e9: fcf_score = 7  # 含$1B
             elif stock.fcf > 0: fcf_score = 3
             else: fcf_score = 0
 
