@@ -28,7 +28,7 @@
 
 ## Sell Put v5.0 系統狀態（2026-04-17）
 
-**版本：v5.0_FINAL（`8f5e36d`）**
+**版本：v5.0_FINAL（`51ed4c8`）**
 本地端代碼、GitHub、v5.0_MODEL_REVISED.md 三方一致。
 
 **修復歷史：**
@@ -45,12 +45,12 @@
 
 **終極問題：** 如果被行權，我願意以這個履約價長期持有這檔股票嗎？
 
-**模型版本：** v5.0_FINAL（`8f5e36d`）
+**模型版本：** v5.0_FINAL（`51ed4c8`）
 - 代碼：`~/.qclaw/workspace/skills/sellput-v5-skill/`
 - GitHub：`https://github.com/johnnylugm-tech/sell_put_score_and_ranking`
 - 評估分數：87.2/100（5份外部評估平均）
 
-**當前狀態：** ✅ 代碼、Doc、GitHub 三方一致（2026-04-17 `8f5e36d`）
+**當前狀態：** ✅ 代碼、Doc、GitHub 三方一致（2026-04-17 `51ed4c8`）
 
 **進場信號（三選一）：**
 1. Gap 大跌（< 履約價 + 5%）
