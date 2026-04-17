@@ -508,8 +508,8 @@ class SellPutV5Skill:
             if stock.fwd_pe <= 0 or stock.fwd_pe > 100:
                 pe_score = 0
             elif stock.fwd_pe <= 20: pe_score = 9
-            elif stock.fwd_pe <= 30: pe_score = 7
-            elif stock.fwd_pe <= 50: pe_score = 5
+            elif stock.fwd_pe < 30: pe_score = 7   # 20-30（不含30），與文檔一致
+            elif stock.fwd_pe <= 50: pe_score = 5   # 30-50（含30）
             else: pe_score = 2
 
             if stock.fcf > 10e9: fcf_score = 10
@@ -552,11 +552,11 @@ class SellPutV5Skill:
         if stock.earnings_date:
             days_to_earnings = (stock.earnings_date - self.today).days
         else:
-            days_to_earnings = 999 if stock.ticker == 'QQQ' else 45
+            days_to_earnings = 999 if stock.ticker == 'QQQ' else 3  # 無財報預設 3（保守），與文檔一致
         
         if days_to_earnings > 30: scores['s7'] = 5
-        elif days_to_earnings > 15: scores['s7'] = 3
-        elif days_to_earnings > 7: scores['s7'] = 1
+        elif days_to_earnings >= 15: scores['s7'] = 3  # 15-30（含15）
+        elif days_to_earnings >= 7: scores['s7'] = 1   # 7-14（含7）
         else: scores['s7'] = 0
         metrics['days_to_earnings'] = days_to_earnings
         
@@ -566,8 +566,8 @@ class SellPutV5Skill:
         margin = price * 0.20
 
         if 30 <= dte <= 45: dte_factor = 1.10
-        elif 20 <= dte <= 29: dte_factor = 1.00   # P0修正①：含 DTE=20（動態窗口擴展）
-        elif 45 <= dte <= 60: dte_factor = 0.95
+        elif 20 <= dte <= 29: dte_factor = 1.00   # 含 DTE=20（動態窗口擴展）
+        elif 45 < dte <= 60: dte_factor = 0.95    # P2修正：45<dte（不含45，否則被上面吃掉）
         else: dte_factor = 0.85
 
         rocc_raw = (bid / margin) * (365 / dte) * 100 if margin > 0 else 0
@@ -654,11 +654,43 @@ class SellPutV5Skill:
                 
                 is_forbidden = metrics.get('days_to_earnings', 999) <= 7
 
-                # P0修正③：生成特殊警告
+                # P0修正③：生成完整警告（共9項）
                 warnings = []
                 dist_low = metrics.get('dist_low', 100)
+                iv_hv_ratio = metrics.get('iv_hv_ratio', 1.0)
+                hv = stock.hv
+                iv = option.iv
+
+                # ① 近52W低點
                 if dist_low < 15:
-                    warnings.append(f"⚠️ 近52W低點（距低點{dist_low:.1f}%）")
+                    warnings.append(f"⚠️ 近52W低點（距低點{dist_low:.1f}%)")
+
+                # ② 過熱 RSI>70
+                if stock.rsi > 70:
+                    warnings.append(f"⚠️ 過熱 RSI={stock.rsi:.0f}")
+
+                # ③ IV低估（IV/HV<0.2 且 HV>30）
+                if iv_hv_ratio < 0.2 and hv > 30:
+                    warnings.append(f"⚠️ IV低估 IV/HV={iv_hv_ratio:.2f}")
+
+                # ④ IV異常（IV/HV<0.1）
+                if iv_hv_ratio < 0.1:
+                    warnings.append(f"⚠️ IV異常 IV/HV={iv_hv_ratio:.2f}")
+
+                # ⑤ 數據不穩（tier=t3）
+                if option.tier == 't3':
+                    warnings.append(f"⚠️ 數據不穩tier=t3")
+
+                # ⑥ 高IV低流動（IV>80% 且市值<$100B）
+                if iv > 80 and stock.mkt_cap < 100e9:
+                    warnings.append(f"⚠️ 高IV低流動 IV={iv:.0f}%")
+
+                # ⑦ 基本面<10分
+                s3_score = scores.get('s3', 0)
+                if s3_score < 10:
+                    warnings.append(f"⚠️ 基本面不足 s3={s3_score}")
+
+                # ⑧ Put到期涵蓋財報
                 if option.exp and stock.earnings_date:
                     exp_date = datetime.strptime(option.exp, '%Y-%m-%d')
                     if (stock.earnings_date - exp_date).days < 7:
@@ -692,7 +724,7 @@ class SellPutV5Skill:
             if sector_counts[r.sector] >= 3 and max_count >= 3:
                 # 該板塊有 ≥3 檔 → s5 扣 2 分
                 r.scores['s5'] = max(r.scores.get('s5', 0) - 2, 0)
-                r.warnings.append(f"⚠️板塊集中({sector_counts[r.sector]}檔)S5-2")
+                r.warnings.append(f"⚠️板塊集中({sector_counts[r.sector]}檔)S5-2")  # P1修正：放warnings欄（非s7），與文檔一致
                 # 重新計算總分
                 r.raw_total = sum(r.scores.values())
                 r.adj_total = r.raw_total * 0.8 if r.scores.get('s3', 0) < 10 else r.raw_total
