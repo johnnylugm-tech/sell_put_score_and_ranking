@@ -69,44 +69,14 @@ def format_report(data, today):
         return "N/A"
     
     def build_warnings(r):
+        """直接使用 core.py 產生的 warnings，避免重複邏輯。
+        Strip ⚠️ prefix from each warning, join with ' / '."""
+        warns = r.get('warnings', [])
         parts = []
-        metrics = r.get('metrics', {})
-        scores = r.get('scores', {})
-        
-        if r.get('stock', {}).get('rsi', 0) > 70:
-            parts.append("過熱")
-        
-        iv = r.get('option', {}).get('iv', 0)
-        mkt_cap = r.get('metrics', {}).get('mkt_cap', 0)
-        if iv > 80 and mkt_cap < 100e9:
-            parts.append("高IV低流動")
-        
-        if r.get('days_to_earnings', 999) <= 7:
-            parts.append("財報")
-
-        # IV低估：IV/HV < 0.2 且 HV > 30（市場定價嚴重偏低）
-        hv_val = r.get('hv', 0) or 0
-        opt_iv_val = r.get('option', {}).get('iv', 0) or 0
-        if hv_val > 30 and 0 < opt_iv_val < hv_val * 0.2:
-            parts.append("IV低估")
-        # IV異常：IV/HV < 0.1（極度偏離）或 IV > HV×3（估計值疑似錯誤）
-        if hv_val > 10 and 0 < opt_iv_val < hv_val * 0.1:
-            if "IV低估" not in parts:
-                parts.append("IV低估")
-
-        # 數據不穩：tier=t3（HV×1.3估算，非真實報價）
-        tier = r.get('option', {}).get('tier', 'unknown')
-        if tier == 't3':
-            parts.append("數據不穩")
-
-        # Merge with ScoreResult.warnings (板塊集中, Put覆蓋財報, etc.)
-        extra_warns = r.get('warnings', [])
-        for w in extra_warns:
-            # Strip the ⚠️ prefix if present
+        for w in warns:
             w_clean = w.replace('⚠️', '').strip()
-            if w_clean and w_clean not in parts:
+            if w_clean:
                 parts.append(w_clean)
-
         return " / ".join(parts) if parts else ""
     
     for i, r in enumerate(data['stocks'], 1):
