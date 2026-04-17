@@ -560,6 +560,7 @@ class SellPutV5Skill:
         if days_to_earnings > 30: scores['s7'] = 5
         elif days_to_earnings >= 15: scores['s7'] = 3  # 15-30（含15）
         elif days_to_earnings >= 7: scores['s7'] = 1   # 7-14（含7）
+        elif days_to_earnings < 0: scores['s7'] = 5      # 已過財報：下次財報約90天後，事件風險極低 → s7=5（與>30天同級）
         else: scores['s7'] = 0
         metrics['days_to_earnings'] = days_to_earnings
         
