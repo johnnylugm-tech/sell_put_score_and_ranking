@@ -273,17 +273,20 @@ class SellPutV5Skill:
             days_to_earnings = (stock.earnings_date - self.today).days
 
         def covers_earnings(exp_str):
-            """判斷到期日是否涵蓋財報（財報在到期日之前 <7天）"""
+            """判斷到期日是否涵蓋財報（到期日在財報日之後 7 天內，即 earnings 落在期權有效期內）"""
             if not stock.earnings_date:
                 return False
             exp_date = datetime.strptime(exp_str, '%Y-%m-%d')
-            return (stock.earnings_date - exp_date).days < 7
+            # 到期日在財報後 7 天內 = 到期日 - 財報日 < 7
+            # 到期日必須在財報日之後（earnings 還沒發生）才有意義
+            return exp_date > stock.earnings_date and (exp_date - stock.earnings_date).days < 7
 
         # 根據距財報天數，動態設定 DTE 窗口
         #   1. 距財報 >30天 → 正常選 30-45 DTE
         #   2. 距財報 7-30天 → 擴展到 14-60，強制不涵蓋財報
         #   3. 距財報 ≤7天  → 允許 DTE<20，強制不涵蓋
-        if days_to_earnings > 30:
+        #   4. 財報已過（days_to_earnings < 0）→ 正常窗口（30-45）
+        if days_to_earnings < 0 or days_to_earnings > 30:
             dte_window = (30, 45)
         elif days_to_earnings > 7:
             dte_window = (14, 60)
@@ -652,7 +655,9 @@ class SellPutV5Skill:
                 elif adj_total >= 50: grade = 'C'
                 else: grade = 'D'
                 
-                is_forbidden = metrics.get('days_to_earnings', 999) <= 7
+                # 🚫 禁止新規：僅在「財報在未來 7 天內」時才禁止（已過財報不算）
+                days_to_earnings = metrics.get('days_to_earnings', 999)
+                is_forbidden = 0 <= days_to_earnings <= 7
 
                 # P0修正③：生成完整警告（共9項）
                 warnings = []
@@ -690,10 +695,10 @@ class SellPutV5Skill:
                 if s3_score < 10:
                     warnings.append(f"⚠️ 基本面不足 s3={s3_score}")
 
-                # ⑧ Put到期涵蓋財報
+                # ⑧ Put到期涵蓋財報（到期日在財報後 7 天內，且財報尚未發生）
                 if option.exp and stock.earnings_date:
                     exp_date = datetime.strptime(option.exp, '%Y-%m-%d')
-                    if (stock.earnings_date - exp_date).days < 7:
+                    if exp_date > stock.earnings_date and (exp_date - stock.earnings_date).days < 7:
                         warnings.append(f"⚠️ Put到期間涵蓋財報（{stock.earnings_date.strftime('%m/%d')}）")
 
                 # 計算建議履約價（距離現價 8% 的 OTM Put）
