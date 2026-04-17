@@ -22,17 +22,44 @@ def get_default_bot_token():
     default = accounts.get("default", {})
     return default.get("botToken", "")
 
+MAX_MSG_SIZE = 4000  # Telegram 訊息上限 4096，留 96 字元 buffer
+
 def send_telegram(text, token):
     """使用 Telegram Bot API 發送訊息"""
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     data = urllib.parse.urlencode({
         "chat_id": TELEGRAM_CHAT_ID,
-        "text": text,
-        "parse_mode": ""
+        "text": text
     }).encode()
     req = urllib.request.Request(url, data=data, method="POST")
     with urllib.request.urlopen(req, timeout=30) as resp:
         return json.loads(resp.read().decode())
+
+def send_telegram_splits(text, token):
+    """分段發送，確保每段不超過 MAX_MSG_SIZE"""
+    import time
+    if len(text) <= MAX_MSG_SIZE:
+        r = send_telegram(text, token)
+        return [r]
+    # 在換行處分割
+    parts = []
+    while len(text) > MAX_MSG_SIZE:
+        split_pt = text.rfind('\n', 0, MAX_MSG_SIZE)
+        if split_pt == -1:
+            split_pt = MAX_MSG_SIZE
+        parts.append(text[:split_pt])
+        text = text[split_pt:]
+    if text:
+        parts.append(text)
+    results = []
+    for i, part in enumerate(parts):
+        r = send_telegram(part, token)
+        print(f"  {'✅' if r.get('ok') else '❌'} 第{i+1}段 ({len(part)} 字)")
+        if not r.get("ok"):
+            print(f"     錯誤: {r}")
+        results.append(r)
+        time.sleep(1)
+    return results
 
 def main():
     print("📊 執行 Sell Put 報告...")
@@ -67,36 +94,9 @@ def main():
     
     print(f"📤 發送到 Telegram...")
     try:
-        if len(report) > 4096:
-            # Split into two parts at the WeChat section
-            wechat_marker = "\n============================================================\n【微信通知格式】"
-            if wechat_marker in report:
-                idx = report.index(wechat_marker)
-                part1 = report[:idx]
-                part2 = report[idx:]
-                msg1 = send_telegram(part1, token)
-                if msg1.get("ok"):
-                    print(f"✅ 第一部分發送成功，message_id: {msg1['result']['message_id']}")
-                else:
-                    print(f"❌ 第一部分發送失敗: {msg1}")
-                import time; time.sleep(1)
-                msg2 = send_telegram(part2, token)
-                if msg2.get("ok"):
-                    print(f"✅ 第二部分發送成功，message_id: {msg2['result']['message_id']}")
-                else:
-                    print(f"❌ 第二部分發送失敗: {msg2}")
-            else:
-                result = send_telegram(report[:4096], token)
-                if result.get("ok"):
-                    print(f"✅ 發送成功，message_id: {result['result']['message_id']}")
-                else:
-                    print(f"❌ 發送失敗: {result}")
-        else:
-            result = send_telegram(report, token)
-            if result.get("ok"):
-                print(f"✅ 發送成功，message_id: {result['result']['message_id']}")
-            else:
-                print(f"❌ 發送失敗: {result}")
+        results = send_telegram_splits(report, token)
+        ok_count = sum(1 for r in results if r.get("ok"))
+        print(f"📤 發送完成：{ok_count}/{len(results)} 段成功")
     except Exception as e:
         print(f"❌ 發送例外: {e}")
         sys.exit(1)
