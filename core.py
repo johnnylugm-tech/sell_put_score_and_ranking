@@ -555,7 +555,7 @@ class SellPutV5Skill:
         if stock.earnings_date:
             days_to_earnings = (stock.earnings_date - self.today).days
         else:
-            days_to_earnings = 999 if stock.ticker == 'QQQ' else 3  # 無財報預設 3（保守），與文檔一致
+            days_to_earnings = 999 if stock.ticker == 'QQQ' else 20  # 無財報預設 20天→s7=3（保守），不觸發forbidden
         
         if days_to_earnings > 30: scores['s7'] = 5
         elif days_to_earnings >= 15: scores['s7'] = 3  # 15-30（含15）
