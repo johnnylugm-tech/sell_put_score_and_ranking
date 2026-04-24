@@ -116,8 +116,16 @@ def format_report(data, today):
         # 倉位
         pos_str = calc_position(r)
         
-        # 時機
-        timing_str = r.get('timing', 'N/A') or 'N/A'
+        # 時機（直接由 DTE + RSI 重新計算，與 core.py 同步）
+        # DTE: 優先用 option.dte（真實合約DTE），其次 days_to_earnings
+        opt_dte = opt.get('dte', 0) or r.get('days_to_earnings', 999)
+        rsi_val = r.get('rsi', 0) or 0
+        if opt_dte < 14 and rsi_val > 60:
+            timing_str = '短線'
+        elif opt_dte <= 45:
+            timing_str = '波段'
+        else:
+            timing_str = '長期'
         
         # 警告
         warn_str = build_warnings(r)

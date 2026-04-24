@@ -675,28 +675,34 @@ class SellPutV5Skill:
                 if stock.rsi > 70:
                     warnings.append(f"⚠️ 過熱 RSI={stock.rsi:.0f}")
 
-                # ③ IV低估（IV/HV<0.2 且 HV>30）
-                if iv_hv_ratio < 0.2 and hv > 30:
+                # ④ IV/HV 異常：同時檢查被高估(>1.5)與被低估(<0.2)，用 elif 鏈避免重複
+                if iv_hv_ratio > 1.5:
+                    warnings.append(f"⚠️ IV被高估 IV/HV={iv_hv_ratio:.2f}")
+                elif iv_hv_ratio < 0.2 and hv > 30:
                     warnings.append(f"⚠️ IV低估 IV/HV={iv_hv_ratio:.2f}")
 
-                # ④ IV異常（IV/HV<0.1）
+                # ⑤ IV異常（IV/HV<0.1，IV低估的子集）
                 if iv_hv_ratio < 0.1:
                     warnings.append(f"⚠️ IV異常 IV/HV={iv_hv_ratio:.2f}")
 
-                # ⑤ 數據不穩（tier=t3）
+                # ⑦ 數據不穩（tier=t3）
                 if option.tier == 't3':
                     warnings.append(f"⚠️ 數據不穩tier=t3")
 
-                # ⑥ 高IV低流動（IV>80% 且市值<$100B）
+                # ⑦' IV數據可疑（t2 + IV<10%）
+                if option.tier == 't2' and iv < 10:
+                    warnings.append(f"⚠️ IV數據可疑 IV={iv:.1f}%(t2)")
+
+                # ⑧ 高IV低流動（IV>80% 且市值<$100B）
                 if iv > 80 and stock.mkt_cap < 100e9:
                     warnings.append(f"⚠️ 高IV低流動 IV={iv:.0f}%")
 
-                # ⑦ 基本面<10分
+                # ⑨ 基本面<10分
                 s3_score = scores.get('s3', 0)
                 if s3_score < 10:
                     warnings.append(f"⚠️ 基本面不足 s3={s3_score}")
 
-                # ⑧ Put到期涵蓋財報（到期日在財報後 7 天內，且財報尚未發生）
+                # ⑩ Put到期涵蓋財報（到期日在財報後 7 天內，且財報尚未發生）
                 if option.exp and stock.earnings_date:
                     exp_date = datetime.strptime(option.exp, '%Y-%m-%d')
                     if exp_date > stock.earnings_date and (exp_date - stock.earnings_date).days < 7:
