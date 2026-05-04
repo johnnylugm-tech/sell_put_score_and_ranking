@@ -13,7 +13,7 @@ from core import SellPutV5Skill
 from excel_gen import generate_excel
 
 # 預設股票清單
-DEFAULT_TICKERS = ['MU','TSM','AVGO','AMD','NVDA','MRVL','ALAB','GOOGL','VST','AAPL','AMZN','ARM','MSFT','INTC','TSLA','QQQ']
+DEFAULT_TICKERS = ['MU','TSM','AVGO','AMD','NVDA','MRVL','ALAB','GOOGL','VST','AAPL','AMZN','ARM','MSFT','INTC','TSLA','QQQ','VRT']
 
 
 def to_dict(r, today):

@@ -68,7 +68,8 @@ class SellPutV5Skill:
         'AMD': 'Semiconductor', 'NVDA': 'Semiconductor', 'MRVL': 'Semiconductor',
         'ALAB': 'Biotech', 'GOOGL': 'Cloud/AI', 'VST': 'Utilities',
         'AAPL': 'Consumer', 'AMZN': 'Cloud/AI', 'ARM': 'Semiconductor',
-        'MSFT': 'Cloud/AI', 'INTC': 'Semiconductor', 'TSLA': 'EV', 'QQQ': 'ETF'
+        'MSFT': 'Cloud/AI', 'INTC': 'Semiconductor', 'TSLA': 'EV',
+        'QQQ': 'ETF', 'VRT': 'Infrastructure/Datacenter'
     }
     
     def __init__(self, tickers: List[str], today: Optional[datetime] = None):
